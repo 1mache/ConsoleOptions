@@ -10,6 +10,8 @@ class Program
         public int SomeFoo { get; set; }
         [ParamAttribute(true, "User surname")]
         public string? Surname { get; set; }
+        [ParamAttribute(true, "User ID")]
+        public int ID { get; set; }
     }
 
     static void Main(string[] args)
