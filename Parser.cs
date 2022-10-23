@@ -107,7 +107,7 @@ class Parser<T>
                     useInstruction += $"<{prop.Name}> ";
             }
         }
-        
+        useInstruction += "<OptionalParamName>=Value ...";
         helpText += useInstruction;
         helpText += optionalParamsText;
         //execution option instructions will be added here 
