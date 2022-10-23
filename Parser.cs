@@ -20,46 +20,62 @@ class Parser<T>
 
     public T? Parse(string[] cmdArgs) 
     {
-        var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        
-        //since parameters should be passed in order,
-        //this will show which param are we currently looking at.
-        int paramId = 0;
-
-        //will be set to true once all the required parameters got passed.
-        bool requiredParams = false;
-
-        if(cmdArgs[0].Equals("--help"))
+        if(cmdArgs.Length == 1 && cmdArgs[0].Equals("-help"))
         {
             ShowHelp();
             return default(T);
         }
+        
+        var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        int requiredCount = 0;
 
         foreach (var prop in props)
         {
-            if(prop.GetSetMethod() is null)
-                throw new Exception($"No public set method for property: {prop.Name}, cannot be a console parameter!");
-            
-            //gets the param attribute of property. 
             var param = prop.GetCustomAttribute<ParamAttribute>();
-            if(param is not null)
+
+            if (param is not null)
             {
                 if(param.Optional)
+                    break;
+                else
                 {
-                    if(!requiredParams)
-                        requiredParams = true;
-                    
                     try
                     {
-                        prop.SetValue(_options, cmdArgs[paramId]);    
+                        prop.SetValue(_options, cmdArgs[requiredCount]);
                     }
-                    catch (System.IndexOutOfRangeException)
+                    catch (IndexOutOfRangeException)
                     {
-                        // cmdArgs is out of range and required parameters were passed which means
-                        return _options;
-                    } 
+                        throw new Exception("Not all required params were passed, use '--help' for info");
+                    }
+                    requiredCount ++;
                 }
             }
+        }
+
+        for(int i = requiredCount; i < cmdArgs.Length; i++)
+        {
+            var split = cmdArgs[i].Split('=');
+            //format is ParamName=ParamValue
+            if(split.Length == 2)
+            {
+                string name = split[0], value = split[1];
+                bool found = false;
+                for (int j = requiredCount; j < props.Length; j++)
+                {
+                    if(props[j].Name.Equals(name))
+                    {
+                        props[j].SetValue(_options,value);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if(!found)
+                    throw new Exception($"Unknown optional param {name}, use --help.");
+            }
+            else
+                throw new Exception($"Unknown format: {cmdArgs[i]}, use --help");
         }
 
         return _options;
@@ -115,6 +131,12 @@ class Parser<T>
 
             if(param is not null)
             {
+                if(prop.PropertyType != typeof(string))
+                    throw new Exception($"Console params should all be of type string, while {prop.Name} is {prop.PropertyType}!");
+
+                if(prop.GetSetMethod() is null)
+                    throw new Exception($"No public set method for property: {prop.Name}, cannot be a console parameter!");
+
                 if(param.Optional)
                 {
                     if(!requirementsMet)

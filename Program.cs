@@ -6,12 +6,12 @@ class Program
         [ParamAttribute(false, "User name")]
         public string? Name { get; set; }
         [ParamAttribute(false, "User age")]
-        public int Age { get; set; }
-        public int SomeFoo { get; set; }
+        public string? Age { get; set; }
+        public int SomeFoo { get; set;}
+        [ParamAttribute(false, "User ID")]
+        public string? ID { get; set; }
         [ParamAttribute(true, "User surname")]
-        public string? Surname { get; set; }
-        [ParamAttribute(true, "User ID")]
-        public int ID { get; set; }
+        public string? Surname { get; set;}
     }
 
     static void Main(string[] args)
@@ -19,6 +19,13 @@ class Program
         var options = new MyOptions();
         var parser = new Parser<MyOptions>(options, "mycommand");
 
-        parser.ShowHelp();
+        options = parser.Parse(args);
+        if(options is not null)
+        {
+            System.Console.WriteLine(options.Name);
+            System.Console.WriteLine(options.Age);
+            System.Console.WriteLine(options.Surname);
+            System.Console.WriteLine(options.ID);
+        }
     }
 }
