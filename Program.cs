@@ -12,6 +12,12 @@ class Program
         public string? ID { get; set; }
         [Param(true, "User surname")]
         public string? Surname { get; set;}
+
+        [Command("-v")]
+        public void SayHello()
+        {
+            
+        }
     }
 
     static void Main(string[] args)

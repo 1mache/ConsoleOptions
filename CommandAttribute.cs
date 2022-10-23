@@ -1,4 +1,4 @@
-class CommandAttribute
+class CommandAttribute : Attribute
 {
     public string Command { get;}
     public CommandAttribute(string command)
