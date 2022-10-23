@@ -3,14 +3,14 @@ class Program
 {
     class MyOptions
     {
-        [ParamAttribute(false, "User name")]
+        [Param(false, "User name")]
         public string? Name { get; set; }
-        [ParamAttribute(false, "User age")]
+        [Param(false, "User age")]
         public string? Age { get; set; }
         public int SomeFoo { get; set;}
-        [ParamAttribute(false, "User ID")]
+        [Param(false, "User ID")]
         public string? ID { get; set; }
-        [ParamAttribute(true, "User surname")]
+        [Param(true, "User surname")]
         public string? Surname { get; set;}
     }
 
