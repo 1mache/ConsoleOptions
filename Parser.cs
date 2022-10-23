@@ -120,6 +120,10 @@ class Parser<T>
     private void Validate()
     {
         var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        //ignores the property methods for getting/ setting
+        methods = methods.Where(m => !m.IsSpecialName).ToArray();
+
 
         bool requirementsMet = false;
 
@@ -153,6 +157,24 @@ class Parser<T>
                     }
                 }
             }
+
+            var errorAttribute = prop.GetCustomAttribute<CommandAttribute>();
+            if(errorAttribute is not null) 
+                throw new Exception($"You cannot assign a command attribute to properties ({prop.Name})! Methods only");
+        }
+
+        foreach (var method in methods)
+        {
+            var command = method.GetCustomAttribute<CommandAttribute>();
+            if(command is not null)
+            {
+                if(method.GetParameters().Length > 0)
+                    throw new Exception($"Methods that are called by cmd commands cannot have parameters! {method.Name} has parameters!");
+            }
+
+            var errorAttribute = method.GetCustomAttribute<ParamAttribute>();
+            if(errorAttribute is not null) 
+                throw new Exception($"You cannot assign a param attribute to methods ({method.Name})! Properties only");
         }
     }
 }
