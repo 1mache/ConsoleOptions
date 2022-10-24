@@ -21,23 +21,72 @@ class Parser<T>
     }
 
 
-    public T? Parse(string[] cmdArgs) 
+    public void Parse(string[] cmdArgs) 
     {
         if(cmdArgs.Length == 1 && cmdArgs[0].Equals("-help"))
         {
             ShowHelp();
-            return default(T);
+            return;
         }
         
         var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-        var encounteredMembers = new Dictionary<string, bool>();
-
-        methods = methods.Where(m => !m.IsSpecialName).ToArray();
+        MethodInfo[] methods = new MethodInfo[]{};
+        if(_hasCommands)
+        {
+            methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            methods = methods.Where(m => !m.IsSpecialName).ToArray();
+        }
+        
+        //console args that were already encountered by the parser
+        //to avoid duplicating commands/param evaluation
+        var encounteredArgs = new Dictionary<string, bool>();
 
         int requiredCount = 0;
 
+        SetRequiredParams(props, cmdArgs, ref requiredCount);
+
+        for(int i = requiredCount; i < cmdArgs.Length; i++)
+        {
+            if(cmdArgs[i][0].Equals('-'))
+            {
+                //if the options class doesnt have commands then the GetMethod method will
+                //simply recieve an empty array and return false
+                if(Encountered(encounteredArgs, cmdArgs[i]))
+                    throw new Exception($"Command duplication! {cmdArgs[i]}");
+                
+                var method = GetMethod(methods, cmdArgs[i]);
+                //invoke method with no parameters
+                method.Invoke(_options, new object?[]{});
+                encounteredArgs.Add(cmdArgs[i], true);
+            }
+            else
+            {
+                if(!_hasOptionalParams)
+                    throw new Exception($"Unknown param {cmdArgs[i]}, options do not include opional params");
+
+                //format is ParamName=ParamValue
+                var split = cmdArgs[i].Split('=');
+                if(split.Length == 2)
+                {
+                    string name = split[0], value = split[1];
+                    if(Encountered(encounteredArgs, name))
+                        throw new Exception($"Got param '{name}' twice.");
+
+                    var prop = GetOptionalProperty(props, requiredCount, name);
+                    prop.SetValue(_options, value);
+                    encounteredArgs.Add(name, true);
+                }
+                else
+                    throw new Exception($"Unknown format: {cmdArgs[i]}, use --help");
+
+            }
+        }
+    }
+
+    //sets the required params from the values in cmdArgs, and stores how many are there in a ref counter
+    private void SetRequiredParams(PropertyInfo[] props, string[] cmdArgs, ref int count )
+    {
         foreach (var prop in props)
         {
             var param = prop.GetCustomAttribute<ParamAttribute>();
@@ -50,87 +99,59 @@ class Parser<T>
                 {
                     try
                     {
-                        prop.SetValue(_options, cmdArgs[requiredCount]);
+                        prop.SetValue(_options, cmdArgs[count]);
                     }
                     catch (IndexOutOfRangeException)
                     {
                         throw new Exception("Not all required params were passed, use '--help' for info");
                     }
-                    requiredCount ++;
+                    count++;
                 }
             }
         }
-
-        for(int i = requiredCount; i < cmdArgs.Length; i++)
-        {
-            if(cmdArgs[i][0].Equals('-'))
-            {
-                bool found = false;
-
-                foreach(var method in methods)
-                {
-                    var command = method.GetCustomAttribute<CommandAttribute>();
-
-                    if(command is not null)
-                    {
-                        if(command.Command.Equals(cmdArgs[i]))
-                        {
-                            if(InDict(encounteredMembers, command.Command))
-                                throw new Exception($"Got command '{command.Command}' twice");
-
-                            method.Invoke(_options, new object?[]{});
-                            encounteredMembers.Add(command.Command, true);
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-
-                if(!found)
-                    throw new Exception($"Unknown command {cmdArgs[i]}. Use --help");
-            }
-            else
-            {
-                var split = cmdArgs[i].Split('=');
-                //format is ParamName=ParamValue
-                if(split.Length == 2)
-                {
-                    string name = split[0], value = split[1];
-                    bool found = false;
-                    for (int j = requiredCount; j < props.Length; j++)
-                    {
-                        if(props[j].Name.Equals(name))
-                        {
-                            if(InDict(encounteredMembers, name))
-                                throw new Exception($"Got argument '{name}' twice.");
-
-                            props[j].SetValue(_options,value);
-                            encounteredMembers.Add(name, true);
-                            found = true;
-                            break;
-                        }
-                    }
-    
-                    if(!found)
-                        throw new Exception($"Unknown optional param {name}, use --help.");
-                }
-                else
-                    throw new Exception($"Unknown format: {cmdArgs[i]}, use --help");
-            }
-        }
-
-        return _options;
     }
 
-    private bool InDict(Dictionary<string, bool> dict, string key)
+    //returns a bool that represents whether or not a cmd argument was already encountered
+    private bool Encountered(Dictionary<string, bool> dict, string key)
     {
         bool b = false;
         dict.TryGetValue(key, out b);
 
         return b;
     }
+    
+    //gets method that corresponds to the passed command if there is one
+    private MethodInfo GetMethod(MethodInfo[] methods, string command)
+    {
+        foreach(var method in methods)
+        {
+            var commandAttr = method.GetCustomAttribute<CommandAttribute>();
 
-    public void ShowHelp()
+            if(commandAttr is not null)
+            {
+                if(commandAttr.Command.Equals(command))
+                {
+                    return method;
+                }
+            }
+        }
+        throw new Exception($"Unknown command {command}. Use --help");
+    }
+
+    //gets a property that corresponds to a name if there is one
+    private PropertyInfo GetOptionalProperty(PropertyInfo[] props, int requiredCount, string paramName)
+    {
+        for (int j = requiredCount; j < props.Length; j++)
+        {
+            if(props[j].Name.Equals(paramName))
+            {
+                return props[j];
+            }
+        }
+        throw new Exception($"Unknown param name {paramName}! Use --help");
+    }
+
+    private void ShowHelp()
     {
         var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         
@@ -163,23 +184,23 @@ class Parser<T>
         if(_hasOptionalParams)
             helpText += optionalParamsText + "\n";
 
-            if (_hasCommands)
+        if (_hasCommands)
+        {
+            var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            //ignores the property methods for getting/ setting
+            methods = methods.Where(m => !m.IsSpecialName).ToArray();
+            
+            foreach (var method in methods)
             {
-                var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                //ignores the property methods for getting/ setting
-                methods = methods.Where(m => !m.IsSpecialName).ToArray();
-                
-                foreach (var method in methods)
+                var command = method.GetCustomAttribute<CommandAttribute>();
+    
+                if(command is not null)
                 {
-                    var command = method.GetCustomAttribute<CommandAttribute>();
-        
-                    if(command is not null)
-                    {
-                        commandText += $"\n<{command.Command}>   -   {command.Description}";
-                    }
+                    commandText += $"\n<{command.Command}>   -   {command.Description}";
                 }
-                helpText += commandText;
             }
+            helpText += commandText;
+        }
 
         System.Console.WriteLine(helpText);
     }

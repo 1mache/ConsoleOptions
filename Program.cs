@@ -31,7 +31,7 @@ class Program
         var options = new MyOptions();
         var parser = new Parser<MyOptions>(options, "mycommand");
 
-        options = parser.Parse(args);
+        parser.Parse(args);
         if(options is not null)
         {
             System.Console.WriteLine(options.Name);
