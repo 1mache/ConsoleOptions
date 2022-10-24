@@ -1,4 +1,5 @@
 using System.Reflection;
+
 class Parser<T>
 {
     private T _options;
@@ -27,6 +28,11 @@ class Parser<T>
         }
         
         var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+        var encounteredMembers = new Dictionary<string, bool>();
+
+        methods = methods.Where(m => !m.IsSpecialName).ToArray();
 
         int requiredCount = 0;
 
@@ -55,30 +61,71 @@ class Parser<T>
 
         for(int i = requiredCount; i < cmdArgs.Length; i++)
         {
-            var split = cmdArgs[i].Split('=');
-            //format is ParamName=ParamValue
-            if(split.Length == 2)
+            if(cmdArgs[i][0].Equals('-'))
             {
-                string name = split[0], value = split[1];
                 bool found = false;
-                for (int j = requiredCount; j < props.Length; j++)
+
+                foreach(var method in methods)
                 {
-                    if(props[j].Name.Equals(name))
+                    var command = method.GetCustomAttribute<CommandAttribute>();
+
+                    if(command is not null)
                     {
-                        props[j].SetValue(_options,value);
-                        found = true;
-                        break;
+                        if(command.Command.Equals(cmdArgs[i]))
+                        {
+                            if(InDict(encounteredMembers, command.Command))
+                                throw new Exception($"Got command '{command.Command}' twice");
+
+                            method.Invoke(_options, new object?[]{});
+                            encounteredMembers.Add(command.Command, true);
+                            found = true;
+                            break;
+                        }
                     }
                 }
 
                 if(!found)
-                    throw new Exception($"Unknown optional param {name}, use --help.");
+                    throw new Exception($"Unknown command {cmdArgs[i]}. Use --help");
             }
             else
-                throw new Exception($"Unknown format: {cmdArgs[i]}, use --help");
+            {
+                var split = cmdArgs[i].Split('=');
+                //format is ParamName=ParamValue
+                if(split.Length == 2)
+                {
+                    string name = split[0], value = split[1];
+                    bool found = false;
+                    for (int j = requiredCount; j < props.Length; j++)
+                    {
+                        if(props[j].Name.Equals(name))
+                        {
+                            if(InDict(encounteredMembers, name))
+                                throw new Exception($"Got argument '{name}' twice.");
+
+                            props[j].SetValue(_options,value);
+                            encounteredMembers.Add(name, true);
+                            found = true;
+                            break;
+                        }
+                    }
+    
+                    if(!found)
+                        throw new Exception($"Unknown optional param {name}, use --help.");
+                }
+                else
+                    throw new Exception($"Unknown format: {cmdArgs[i]}, use --help");
+            }
         }
 
         return _options;
+    }
+
+    private bool InDict(Dictionary<string, bool> dict, string key)
+    {
+        bool b = false;
+        dict.TryGetValue(key, out b);
+
+        return b;
     }
 
     public void ShowHelp()
