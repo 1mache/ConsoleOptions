@@ -4,16 +4,18 @@ class Parser<T>
 {
     private T _options;
     private Type _type;
-    private string _commandName;
+    private string _CLICommandName;
+
+    private bool _hasOptionalParams = false, _hasCommands = false;
     
-    public Parser(T optionsInstance, string commandName)
+    public Parser(T optionsInstance, string CLICommandName)
     {
-        if(optionsInstance is null || commandName is null) 
+        if(optionsInstance is null || CLICommandName is null) 
             throw new ArgumentNullException();
 
         _options = optionsInstance;
         _type = typeof(T);
-        _commandName = commandName;
+        _CLICommandName = CLICommandName;
 
         Validate();
     }
@@ -133,14 +135,16 @@ class Parser<T>
         var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         
         //final text
-        string helpText = "==============(--help)==============";
+        string helpText = "==============(--help)==============\n";
 
         //a one line instruction of how to use the command :
         // commandName <param1> <param2>
-        string useInstruction = $"\n*Use: {_commandName} ";
+        string useInstruction = $"\n*Use: {_CLICommandName} ";
 
         //optional parameters explanations
         string optionalParamsText = "\n*Optional Parameters:";
+        // command explanations
+        string commandText = "\n*Optional Commands:";
 
         foreach (var prop in props)
         {
@@ -154,10 +158,28 @@ class Parser<T>
                     useInstruction += $"<{prop.Name}> ";
             }
         }
-        useInstruction += "<OptionalParamName>=Value ...";
+        useInstruction += "<OptionalParamName>=Value ...\n";
         helpText += useInstruction;
-        helpText += optionalParamsText;
-        //execution option instructions will be added here 
+        if(_hasOptionalParams)
+            helpText += optionalParamsText + "\n";
+
+            if (_hasCommands)
+            {
+                var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                //ignores the property methods for getting/ setting
+                methods = methods.Where(m => !m.IsSpecialName).ToArray();
+                
+                foreach (var method in methods)
+                {
+                    var command = method.GetCustomAttribute<CommandAttribute>();
+        
+                    if(command is not null)
+                    {
+                        commandText += $"\n<{command.Command}>   -   {command.Description}";
+                    }
+                }
+                helpText += commandText;
+            }
 
         System.Console.WriteLine(helpText);
     }
@@ -192,6 +214,7 @@ class Parser<T>
                 {
                     if(!requirementsMet)
                         requirementsMet = true;
+                    _hasOptionalParams = true;
                 }
                 else
                 {
@@ -217,6 +240,7 @@ class Parser<T>
             {
                 if(method.GetParameters().Length > 0)
                     throw new Exception($"Methods that are called by cmd commands cannot have parameters! {method.Name} has parameters!");
+                _hasCommands = true;
             }
 
             var errorAttribute = method.GetCustomAttribute<ParamAttribute>();

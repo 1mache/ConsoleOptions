@@ -13,13 +13,13 @@ class Program
         [Param(true, "User surname")]
         public string? Surname { get; set;}
 
-        [Command("-h")]
+        [Command("-h", "Says Hello")]
         public void SayHello()
         {
             System.Console.WriteLine("Hello!");
         }
 
-        [Command("-hu")]
+        [Command("-hu", "Says Hello with user's name")]
         public void SayNamedHello()
         {
             System.Console.WriteLine($"Hello {Name}");
