@@ -1,10 +1,13 @@
-class ParamAttribute : Attribute
+namespace ConsoleOptions
 {
-    public bool Optional { get; }
-    public string Description {get;}
-    public ParamAttribute(bool optional, string description)
+    class ParamAttribute : Attribute
     {
-        Optional = optional;
-        Description = description;
+        public bool Optional { get; }
+        public string Description {get;}
+        public ParamAttribute(bool optional, string description)
+        {
+            Optional = optional;
+            Description = description;
+        }
     }
 }

@@ -1,7 +1,10 @@
 //wrong format of argument passed to parser
-class FormatException : ApplicationException
+namespace ConsoleOptions
 {
-    public FormatException(string message) 
-        :base(message)
-    {}
+    class FormatException : ApplicationException
+    {
+        public FormatException(string message) 
+            :base(message)
+        {}
+    }
 }

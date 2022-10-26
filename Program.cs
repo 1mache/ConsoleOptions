@@ -1,4 +1,4 @@
-﻿
+﻿using ConsoleOptions;
 class Program
 {
     class MyOptions
