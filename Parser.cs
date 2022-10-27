@@ -24,7 +24,7 @@ namespace ConsoleOptions
 
         public void Parse(string[] cmdArgs) 
         {
-            if(cmdArgs.Length == 1 && cmdArgs[0].Equals("-help"))
+            if(cmdArgs.Length == 1 && cmdArgs[0].Equals("--help"))
             {
                 ShowHelp();
                 return;
