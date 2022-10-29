@@ -2,7 +2,7 @@
 //is invalid, unrecognized.
 namespace ConsoleOptions
 {
-    class InvalidArgumentException : ApplicationException
+    public class InvalidArgumentException : ApplicationException
     {
         public InvalidArgumentException(string message)
             :base(message)

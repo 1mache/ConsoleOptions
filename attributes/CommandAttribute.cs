@@ -1,6 +1,6 @@
 namespace ConsoleOptions
 {
-    class CommandAttribute : Attribute
+    public class CommandAttribute : Attribute
     {
         public string Command { get;}
         public string Description{ get;}

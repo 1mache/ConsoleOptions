@@ -1,6 +1,6 @@
 namespace ConsoleOptions
 {
-    class ParamAttribute : Attribute
+    public class ParamAttribute : Attribute
     {
         public bool Optional { get; }
         public string Description {get;}

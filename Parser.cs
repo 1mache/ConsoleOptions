@@ -1,7 +1,7 @@
 namespace ConsoleOptions
 {
     using System.Reflection;
-    class Parser<T>
+    public class Parser<T>
     {
         private T _options;
         private Type _type;
