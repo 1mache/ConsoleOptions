@@ -180,7 +180,8 @@ namespace ConsoleOptions
                         useInstruction += $"<{prop.Name}> ";
                 }
             }
-            useInstruction += "<OptionalParamName>=Value ...\n";
+            if(_hasOptionalParams)
+                useInstruction += "<OptionalParamName>=Value ...\n";
             helpText += useInstruction;
             if(_hasOptionalParams)
                 helpText += optionalParamsText + "\n";
