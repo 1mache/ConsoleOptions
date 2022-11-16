@@ -20,6 +20,6 @@ The Command attribute takes 2 arguments: a string which the parser will look out
 A method marked with Command attribute must be: public, non-static, void, no arguments. If you want some sort of argument for example say hello with a name, you can create a property for name and mark it as a param and then refer to it inside the method.  
 Marked methods can come anywhere in options class even before the params. 
 
-### Parser
+### <ins>Parser</ins>
 Parser is a generic class whose type T is the type of you options class. It's constructor takes 2 arguments: a T instance of your options class and a string which is the clicommand that your app will have (for help screen).  
 The Parser.Parse method will take the args[] that the Main method got and look for the params and commands that you defined. It will automatically create a help screen with instructions and descriptions, and how it when the app is called with --help as only argument. Important note: right now the parser calls the marked method as soon as it sees the command in args so if your method is using an optional param and the command for it was passed before the param itself then you are using an undefined property in the method. Maybe Ill fix it some day.
