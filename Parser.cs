@@ -5,18 +5,18 @@ namespace ConsoleOptions
     {
         private T _options;
         private Type _type;
-        private string _CLICommandName;
+        private string _commandName;
 
         private bool _hasOptionalParams = false, _hasCommands = false;
         
-        public Parser(T optionsInstance, string CLICommandName)
+        public Parser(T optionsInstance, string commandName)
         {
-            if(optionsInstance is null || CLICommandName is null) 
+            if(optionsInstance is null || commandName is null) 
                 throw new ArgumentNullException();
 
             _options = optionsInstance;
             _type = typeof(T);
-            _CLICommandName = CLICommandName;
+            _commandName = commandName;
 
             Validate();
         }
@@ -53,7 +53,7 @@ namespace ConsoleOptions
                 {
                     //if the options class doesnt have commands then the GetMethod method will
                     //simply recieve an empty array and return false
-                    if(Encountered(encounteredArgs, cmdArgs[i]))
+                    if(encounteredArgs.ContainsKey(cmdArgs[i]))
                         throw new InvalidArgumentException($"Command duplication! {cmdArgs[i]}");
                     
                     var method = GetMethod(methods, cmdArgs[i]);
@@ -71,7 +71,7 @@ namespace ConsoleOptions
                     if(split.Length == 2)
                     {
                         string name = split[0], value = split[1];
-                        if(Encountered(encounteredArgs, name))
+                        if(encounteredArgs.ContainsKey(name))
                             throw new InvalidArgumentException($"Got param '{name}' twice.");
 
                         var prop = GetOptionalProperty(props, requiredCount, name);
@@ -110,15 +110,6 @@ namespace ConsoleOptions
                     }
                 }
             }
-        }
-
-        //returns a bool that represents whether or not a cmd argument was already encountered
-        private bool Encountered(Dictionary<string, bool> dict, string key)
-        {
-            bool b = false;
-            dict.TryGetValue(key, out b);
-
-            return b;
         }
         
         //gets method that corresponds to the passed command if there is one
@@ -161,7 +152,7 @@ namespace ConsoleOptions
 
             //a one line instruction of how to use the command :
             // commandName <param1> <param2>
-            string useInstruction = $"\n*Use: {_CLICommandName} ";
+            string useInstruction = $"\n*Use: {_commandName} ";
 
             //optional parameters explanations
             string optionalParamsText = "\n*Optional Parameters:";
@@ -217,7 +208,7 @@ namespace ConsoleOptions
             methods = methods.Where(m => !m.IsSpecialName).ToArray();
 
 
-            bool requirementsMet = false;
+            bool optionalEncountered = false;
 
             if(props.Length == 0) System.Console.WriteLine("WARNING: Pointless Parser. Options class doesnt have public properties");
 
@@ -235,8 +226,8 @@ namespace ConsoleOptions
 
                     if(param.Optional)
                     {
-                        if(!requirementsMet)
-                            requirementsMet = true;
+                        if(!optionalEncountered)
+                            optionalEncountered = true;
                         _hasOptionalParams = true;
                     }
                     else
@@ -244,7 +235,7 @@ namespace ConsoleOptions
                         //if requirementsMet is true it means optional param was encountered
                         //this is invalid condition, mandatory parameters should come
                         //first in order of option class properties
-                        if(requirementsMet)
+                        if(optionalEncountered)
                         {
                             throw new RequiredParamsException($"In options class ({_type}) mandatory params should come before optional params!");
                         }
