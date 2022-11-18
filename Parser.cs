@@ -1,24 +1,24 @@
+
 namespace ConsoleOptions
 {
     using System.Reflection;
     public class Parser<T>
     {
-        private T _options;
-        private Type _type;
+        private T _config;
+        private ConfigInfo<T> _configInfo;
         private string _commandName;
 
         private bool _hasOptionalParams = false, _hasCommands = false;
         
-        public Parser(T optionsInstance, string commandName)
+        public Parser(T configInstance, string commandName)
         {
-            if(optionsInstance is null || commandName is null) 
+            if(configInstance is null || commandName is null) 
                 throw new ArgumentNullException();
 
-            _options = optionsInstance;
-            _type = typeof(T);
+            _config = configInstance;
             _commandName = commandName;
 
-            Validate();
+            _configInfo = new ConfigInfo<T>(_config);
         }
 
 
@@ -30,12 +30,12 @@ namespace ConsoleOptions
                 return;
             }
             
-            var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var props = _configInfo.ConfigType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             MethodInfo[] methods = new MethodInfo[]{};
             if(_hasCommands)
             {
-                methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                methods = _configInfo.ConfigType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 methods = methods.Where(m => !m.IsSpecialName).ToArray();
             }
             
@@ -58,7 +58,7 @@ namespace ConsoleOptions
                     
                     var method = GetMethod(methods, cmdArgs[i]);
                     //invoke method with no parameters
-                    method.Invoke(_options, new object?[]{});
+                    method.Invoke(_config, new object?[]{});
                     encounteredArgs.Add(cmdArgs[i], true);
                 }
                 else
@@ -75,7 +75,7 @@ namespace ConsoleOptions
                             throw new InvalidArgumentException($"Got param '{name}' twice.");
 
                         var prop = GetOptionalProperty(props, requiredCount, name);
-                        prop.SetValue(_options, value);
+                        prop.SetValue(_config, value);
                         encounteredArgs.Add(name, true);
                     }
                     else
@@ -100,7 +100,7 @@ namespace ConsoleOptions
                     {
                         try
                         {
-                            prop.SetValue(_options, cmdArgs[count]);
+                            prop.SetValue(_config, cmdArgs[count]);
                         }
                         catch (IndexOutOfRangeException)
                         {
@@ -145,7 +145,7 @@ namespace ConsoleOptions
 
         private void ShowHelp()
         {
-            var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var props = _configInfo.ConfigType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             
             //final text
             string helpText = "==============(--help)==============\n";
@@ -179,7 +179,7 @@ namespace ConsoleOptions
 
             if (_hasCommands)
             {
-                var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                var methods = _configInfo.ConfigType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 //ignores the property methods for getting/ setting
                 methods = methods.Where(m => !m.IsSpecialName).ToArray();
                 
@@ -196,71 +196,6 @@ namespace ConsoleOptions
             }
 
             System.Console.WriteLine(helpText);
-        }
-        
-        //after we validate the options class in the constructor all the methods
-        //can safely assume that mandatory parameters come before optional ones.
-        private void Validate()
-        {
-            var props = _type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            var methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            //ignores the property methods for getting/ setting
-            methods = methods.Where(m => !m.IsSpecialName).ToArray();
-
-
-            bool optionalEncountered = false;
-
-            if(props.Length == 0) System.Console.WriteLine("WARNING: Pointless Parser. Options class doesnt have public properties");
-
-            foreach (var prop in props)
-            {
-                var param = prop.GetCustomAttribute<ParamAttribute>();
-
-                if(param is not null)
-                {
-                    if(prop.PropertyType != typeof(string))
-                        throw new InvalidAttributeException($"Console params should all be of type string, while {prop.Name} is {prop.PropertyType}!");
-
-                    if(prop.GetSetMethod() is null)
-                        throw new InvalidAttributeException($"No public set method for property: {prop.Name}, cannot be a console parameter!");
-
-                    if(param.Optional)
-                    {
-                        if(!optionalEncountered)
-                            optionalEncountered = true;
-                        _hasOptionalParams = true;
-                    }
-                    else
-                    {
-                        //if requirementsMet is true it means optional param was encountered
-                        //this is invalid condition, mandatory parameters should come
-                        //first in order of option class properties
-                        if(optionalEncountered)
-                        {
-                            throw new RequiredParamsException($"In options class ({_type}) mandatory params should come before optional params!");
-                        }
-                    }
-                }
-
-                var errorAttribute = prop.GetCustomAttribute<CommandAttribute>();
-                if(errorAttribute is not null) 
-                    throw new InvalidAttributeException($"You cannot assign a command attribute to properties ({prop.Name})! Methods only");
-            }
-
-            foreach (var method in methods)
-            {
-                var command = method.GetCustomAttribute<CommandAttribute>();
-                if(command is not null)
-                {
-                    if(method.GetParameters().Length > 0)
-                        throw new InvalidAttributeException($"Methods that are called by cmd commands cannot have parameters! {method.Name} has parameters!");
-                    _hasCommands = true;
-                }
-
-                var errorAttribute = method.GetCustomAttribute<ParamAttribute>();
-                if(errorAttribute is not null) 
-                    throw new InvalidAttributeException($"You cannot assign a param attribute to methods ({method.Name})! Properties only");
-            }
         }
     }
 }
