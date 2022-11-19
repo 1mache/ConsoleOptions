@@ -22,12 +22,12 @@ namespace ConsoleOptions
         }
 
 
-        public void Parse(string[] cmdArgs) 
+        public bool Parse(string[] cmdArgs) 
         {
             if(cmdArgs.Contains<string>("-help"))
             {
                 ShowHelp();
-                return;
+                return false;
             }
 
             if(cmdArgs.Length < _configInfo.RequiredQueue.Count)
@@ -93,6 +93,7 @@ namespace ConsoleOptions
                 throw new RequiredParamsException($"Missing some key arguments like: {requiredQueue.Dequeue().GetCustomAttribute<ParamAttribute>()!.Name}");
 
             _optionalActions?.Invoke();
+            return true;
         }
 
         private void ShowHelp()
