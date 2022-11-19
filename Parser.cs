@@ -15,9 +15,9 @@ namespace ConsoleOptions
                 throw new ArgumentNullException();
 
             _configObject = configObject;
-            _helpScreen = helpScreen;
-
             _configInfo = new ConfigInfo<T>(_configObject);
+
+            _helpScreen = helpScreen;
         }
 
         public Parser(string commandName ,T configObject)
@@ -26,9 +26,9 @@ namespace ConsoleOptions
                 throw new ArgumentNullException();
 
             _configObject = configObject;
-            _helpScreen = BuildHelpScreen(commandName);
-
             _configInfo = new ConfigInfo<T>(_configObject);
+            
+            _helpScreen = BuildHelpScreen(commandName, configObject);
         }
 
 
@@ -94,7 +94,7 @@ namespace ConsoleOptions
                     if(requiredQueue.Count > 0)
                         requiredQueue.Dequeue().SetValue(_configObject,arg);
                     else
-                        throw new InvalidArgumentException($"Unknown argument {arg}");
+                        throw new InvalidArgumentException($"Unidetified argument {arg}");
                 }
             }
 
@@ -107,15 +107,14 @@ namespace ConsoleOptions
             return true;
         }
 
-        private string BuildHelpScreen(string commandName)
+        private string BuildHelpScreen(string commandName, T config)
         {
-            var props = _configInfo.ConfigType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            
+            var configInfoCopy = new ConfigInfo<T>(config);
             //final text
             string helpText = "==============(-help)==============\n";
-
-            var requiredQueue = _configInfo.RequiredQueue;
-            var optionsTable = _configInfo.OptionsTable;
+            
+            var requiredQueue = configInfoCopy.RequiredQueue;
+            var optionsTable = configInfoCopy.OptionsTable;
 
             //a one line instruction of how to use the command :
             // commandName <param1> <param2>
