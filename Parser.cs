@@ -6,17 +6,27 @@ namespace ConsoleOptions
     {
         private T _configObject;
         private ConfigInfo<T> _configInfo;
-        private string _commandName;
-
+        private string _helpScreen;
         private Action? _optionalActions;
         
-        public Parser(T configObject, string commandName)
+        public Parser(T configObject, string helpScreen)
+        {
+            if(configObject is null || helpScreen is null) 
+                throw new ArgumentNullException();
+
+            _configObject = configObject;
+            _helpScreen = helpScreen;
+
+            _configInfo = new ConfigInfo<T>(_configObject);
+        }
+
+        public Parser(string commandName ,T configObject)
         {
             if(configObject is null || commandName is null) 
                 throw new ArgumentNullException();
 
             _configObject = configObject;
-            _commandName = commandName;
+            _helpScreen = BuildHelpScreen(commandName);
 
             _configInfo = new ConfigInfo<T>(_configObject);
         }
@@ -26,7 +36,7 @@ namespace ConsoleOptions
         {
             if(cmdArgs.Contains<string>("-help"))
             {
-                ShowHelp();
+                System.Console.WriteLine(_helpScreen);
                 return false;
             }
 
@@ -92,11 +102,12 @@ namespace ConsoleOptions
             if(requiredQueue.Count > 0)
                 throw new RequiredParamsException($"Missing some key arguments like: {requiredQueue.Dequeue().GetCustomAttribute<ParamAttribute>()!.Name}");
 
+            //invokes all the optional methods
             _optionalActions?.Invoke();
             return true;
         }
 
-        private void ShowHelp()
+        private string BuildHelpScreen(string commandName)
         {
             var props = _configInfo.ConfigType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             
@@ -108,7 +119,7 @@ namespace ConsoleOptions
 
             //a one line instruction of how to use the command :
             // commandName <param1> <param2>
-            string useInstruction = $"\n*Usage: {_commandName}";
+            string useInstruction = $"\n*Usage: {commandName}";
             
             string paramGuide = "";
             if(requiredQueue.Count > 0)
@@ -147,7 +158,7 @@ namespace ConsoleOptions
             helpText+= paramGuide;
             helpText+= optionsGuide;
 
-            System.Console.WriteLine(helpText);
+            return helpText;
         }
     }
 }
