@@ -97,57 +97,56 @@ namespace ConsoleOptions
 
         private void ShowHelp()
         {
-            // var props = _configInfo.ConfigType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var props = _configInfo.ConfigType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             
-            // //final text
-            // string helpText = "==============(--help)==============\n";
+            //final text
+            string helpText = "==============(-help)==============\n";
 
-            // //a one line instruction of how to use the command :
-            // // commandName <param1> <param2>
-            // string useInstruction = $"\n*Use: {_commandName} ";
+            var requiredQueue = _configInfo.RequiredQueue;
+            var optionsTable = _configInfo.OptionsTable;
 
-            // //optional parameters explanations
-            // string optionalParamsText = "\n*Optional Parameters:";
-            // // command explanations
-            // string commandText = "\n*Optional Commands:";
+            //a one line instruction of how to use the command :
+            // commandName <param1> <param2>
+            string useInstruction = $"\n*Usage: {_commandName}";
+            
+            string paramGuide = "";
+            if(requiredQueue.Count > 0)
+                paramGuide += "\n\n*****Required Parameters*****:";
+            //options explanations
+            string optionsGuide = "";
+            if(optionsTable.Count>0)
+            {
+                optionsGuide += "\n\n*****Options*****:";
+                useInstruction+= " [OPTIONS]";
+            }
 
-            // foreach (var prop in props)
-            // {
-            //     var param = prop.GetCustomAttribute<ParamAttribute>();
-                
-            //     if (param is not null)
-            //     {
-            //         if(param.Optional)
-            //             optionalParamsText += $"\n<{prop.Name}>   -   {param.Description}";
-            //         else
-            //             useInstruction += $"<{prop.Name}> ";
-            //     }
-            // }
-            // if(_hasOptionalParams)
-            //     useInstruction += "<OptionalParamName>=Value ...\n";
-            // helpText += useInstruction;
-            // if(_hasOptionalParams)
-            //     helpText += optionalParamsText + "\n";
+            while(requiredQueue.Count>0)
+            {
+                var param = requiredQueue.Dequeue().GetCustomAttribute<ParamAttribute>();
+                useInstruction += $" <{param!.Name}>";
+                paramGuide += $"\n{param.Name}            -             {param.Description}";
+            }
 
-            // if (_hasCommands)
-            // {
-            //     var methods = _configInfo.ConfigType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            //     //ignores the property methods for getting/ setting
-            //     methods = methods.Where(m => !m.IsSpecialName).ToArray();
-                
-            //     foreach (var method in methods)
-            //     {
-            //         var command = method.GetCustomAttribute<CommandAttribute>();
-        
-            //         if(command is not null)
-            //         {
-            //             commandText += $"\n<{command.Name}>   -   {command.Description}";
-            //         }
-            //     }
-            //     helpText += commandText;
-            // }
+            foreach (var option in optionsTable)
+            {
+                var(name, info) = option;
+                if(info is PropertyInfo)
+                {
+                    var param = ((PropertyInfo)info).GetCustomAttribute<ParamAttribute>();
+                    optionsGuide += $"\n-{param!.Name}=VALUE             -             {param.Description}";
+                }
+                else
+                {
+                    var command = ((MethodInfo)info).GetCustomAttribute<CommandAttribute>();
+                    optionsGuide += $"\n'-{command!.Name}'             -             {command.Description}";
+                }
+            }
 
-            System.Console.WriteLine("Help");
+            helpText+= useInstruction;
+            helpText+= paramGuide;
+            helpText+= optionsGuide;
+
+            System.Console.WriteLine(helpText);
         }
     }
 }
