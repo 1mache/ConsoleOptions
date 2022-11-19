@@ -1,9 +1,9 @@
 //wrong format of argument passed to parser
 namespace ConsoleOptions
 {
-    public class FormatException : ApplicationException
+    public class OptionException : ApplicationException
     {
-        public FormatException(string message) 
+        public OptionException(string message) 
             :base(message)
         {}
     }

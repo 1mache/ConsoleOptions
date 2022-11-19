@@ -2,14 +2,15 @@ namespace ConsoleOptions
 {
     public class CommandAttribute : Attribute
     {
-        public string Command { get;}
+        
+        public string Name { get;}
         public string Description{ get;}
-        public CommandAttribute(string command, string description)
+        public CommandAttribute(string name, string description)
         {
-            if((command.Length < 2) || !command[0].Equals('-'))
-                throw new FormatException("Command should be in format '-command'");
+            if(name[0].Equals('-'))
+                throw new OptionException("Name of command must not have a - as first symbool");
             
-            Command = command;
+            Name = name;
             Description = description;
         }
     }
