@@ -2,7 +2,7 @@
 An easy way to parse console arguments.
 
 First you need to create an config class, this class will serve as a set of istructions to the Parser.  
-In the config class you can implement whatever functionality you want, the only thing Parser will care about is methods marked by the [Command] attribute and properties marked by the [Param] attribute.
+In the config class you can implement whatever functionality you want, the only thing Parser will care about is methods marked by the [Command] attribute and properties marked by the [Param] attribute. ! The marked property/method obviously need to be PUBLIC, the Parser looks for public methods/properties so it can interact with them!
 
 ### <ins>The Param attribute</ins>
 The param attribute lets you mark a property as a required or optional param.  
