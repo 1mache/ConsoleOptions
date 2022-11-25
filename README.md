@@ -1,17 +1,16 @@
 # ConsoleOptions
 An easy way to parse console arguments.
 
-First you need to create an options class, this class will serve as a set of istructions to the Parser.  
-In the options class you can implement whatever functionality you want, the only thing Parser will care about is methods marked by the [Command] attribute and properties marked by the [Param] attribute.
+First you need to create an config class, this class will serve as a set of istructions to the Parser.  
+In the config class you can implement whatever functionality you want, the only thing Parser will care about is methods marked by the [Command] attribute and properties marked by the [Param] attribute. ! The marked property/method obviously need to be PUBLIC, the Parser looks for public methods/properties so it can interact with them!
 
 ### <ins>The Param attribute</ins>
 The param attribute lets you mark a property as a required or optional param.  
-The Param attribute takes 2 arguments: a bool defining whether the param is optional (true - optional, false - mandatory) and a param description for the help screen. Note that for now the description is only used by the optional params so you can do anything as a second argument for required ones.  
+The Param attribute takes 3 arguments: a name (this is not related to the name of the property), a bool defining whether the param is optional (true - optional, false - mandatory) and a param description for the help screen.   
 -***Example***: [Param(false, "foo")], [Param(true, "A path to the target file")]  
 If a param is required then it should be passed in console immediately after the cli command. Those are params that are critical to an app's
 functionality.  
-A property marked with Param attribute must be: public, string, non-static, have a public set. If you expect something other than a string you can create a private field of the desired type and cast to this type in the setter of the property.  
-**Critical:** Because of how Parser works, in your Options class all the properties marked as required params must come before those marked as optional params.
+A property marked with Param attribute must be: public, string, non-static, have a public set. If you expect something other than a string you can cast to the desired type afterwards. 
 
 ### <ins>The Command attribute</ins>
 The command attribute lets you mark a method that will be executed by the Parser if it sees a specified command.  
